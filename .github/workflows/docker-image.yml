@@ -37,34 +37,25 @@ jobs:
     name: Build on ${{ inputs.runs-on }}
     runs-on: ${{ inputs.runs-on }}
     env:
-      # 🔥 修复 Node.js 20 弃用警告
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true  # 🔥 彻底消除 Node20 警告
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
-          show-progress: false  # 减少日志噪音，避免意外报错
+          submodules: recursive  # 必须加，Uboot 几乎都有子模块
 
-      # 🔥 修复依赖安装缺失（解决 exit code 1）
       - name: Install build dependencies
         run: |
           sudo apt update -y
           sudo apt install -y \
             gcc-aarch64-linux-gnu \
             build-essential \
-            flex \
-            bison \
-            libssl-dev \
-            libelf-dev \
-            device-tree-compiler \
-            python3-setuptools \
-            git \
-            wget \
-            unzip \
-            bc
+            flex bison libssl-dev libelf-dev \
+            device-tree-compiler python3-setuptools \
+            git bc
 
-      # 🔥 给脚本执行权限（99% 报错都是因为这个！）
-      - name: Make build.sh executable
-        run: chmod +x ./build.sh
+      - name: Make scripts executable
+        run: chmod +x build.sh  # 🔥 解决权限报错（exit code 1 元凶）
 
       - name: Build U-Boot
         run: ./build.sh
@@ -73,8 +64,9 @@ jobs:
           BOARD: ${{ inputs.board }}
           MULTI_LAYOUT: ${{ inputs.multi-layout }}
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload output files
+        uses: actions/upload-artifact@v4
         with:
-          name: Uboot - ${{ inputs.board }} (${{ inputs.soc }})
+          name: Uboot-${{ inputs.board }}-${{ inputs.soc }}
           path: output/*.bin
-          if-no-files-found: error  # 构建失败时明确报错，方便排查
+          if-no-files-found: error
