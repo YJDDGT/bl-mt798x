@@ -2,8 +2,6 @@ name: Build BL-MT798X AX3000T
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ main, master ]
 
 jobs:
   build:
@@ -13,20 +11,19 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: hanwckf/bl-mt798x
-          depth: 1
+          fetch-depth: 1
 
-      - name: Install build dependencies
+      - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y build-essential gcc-aarch64-linux-gnu libssl-dev git make binutils
+          sudo apt install -y build-essential gcc-aarch64-linux-gnu libssl-dev git bison flex
 
       - name: Build AX3000T
         run: |
           SOC=mt7981 BOARD=ax3000t MULTI_LAYOUT=1 ./build.sh
 
-      - name: Upload firmware artifact
+      - name: Upload firmware
         uses: actions/upload-artifact@v4
         with:
-          name: bl-mt798x-ax3000t-firmware
-          path: |
-            bin/
+          name: bl-mt798x-ax3000t
+          path: bin/
