@@ -1,72 +1,32 @@
-name: Uboot Ubuntu CI Build
-run-name: Uboot - ${{ inputs.board }} (${{ inputs.soc }})
+name: Build BL-MT798X AX3000T
 
 on:
   workflow_dispatch:
-    inputs:
-      soc:
-        required: true
-        description: SOC/CPU Model
-        type: string
-        default: mt7981
-      board:
-        required: true
-        description: Router Model Name
-        type: string
-        default: ax3000t
-      multi-layout:
-        required: true
-        description: Enable Multiple Flash Layout Support
-        type: choice
-        default: '1'
-        options:
-          - '0'
-          - '1'
-      runs-on:
-        required: true
-        description: Runs on...
-        type: choice
-        default: ubuntu-latest
-        options:
-          - ubuntu-22.04
-          - ubuntu-24.04
-          - ubuntu-latest
+  push:
+    branches: [ main, master ]
 
 jobs:
-  ubuntu-build:
-    name: Build on ${{ inputs.runs-on }}
-    runs-on: ${{ inputs.runs-on }}
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true  # 🔥 彻底消除 Node20 警告
+  build:
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          submodules: recursive  # 必须加，Uboot 几乎都有子模块
+          repository: hanwckf/bl-mt798x
+          depth: 1
 
       - name: Install build dependencies
         run: |
-          sudo apt update -y
-          sudo apt install -y \
-            gcc-aarch64-linux-gnu \
-            build-essential \
-            flex bison libssl-dev libelf-dev \
-            device-tree-compiler python3-setuptools \
-            git bc
+          sudo apt update
+          sudo apt install -y build-essential gcc-aarch64-linux-gnu libssl-dev git make binutils
 
-      - name: Make scripts executable
-        run: chmod +x build.sh  # 🔥 解决权限报错（exit code 1 元凶）
+      - name: Build AX3000T
+        run: |
+          SOC=mt7981 BOARD=ax3000t MULTI_LAYOUT=1 ./build.sh
 
-      - name: Build U-Boot
-        run: ./build.sh
-        env:
-          SOC: ${{ inputs.soc }}
-          BOARD: ${{ inputs.board }}
-          MULTI_LAYOUT: ${{ inputs.multi-layout }}
-
-      - name: Upload output files
+      - name: Upload firmware artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Uboot-${{ inputs.board }}-${{ inputs.soc }}
-          path: output/*.bin
-          if-no-files-found: error
+          name: bl-mt798x-ax3000t-firmware
+          path: |
+            bin/
